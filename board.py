@@ -16,6 +16,7 @@ class Board:
     def set_initial_state(self):
         # For multiple games
         self.grid = np.full((3, 3), self.EMPTY)
+        self.state = False
 
     def player_turn(self):
         """
@@ -68,7 +69,7 @@ class Board:
         diagonals = np.concatenate((np.diagonal(self.grid), np.diagonal(np.fliplr(self.grid))), axis=0)
 
         # Create a list of all possible winning positions
-        win_pos = np.vstack((self.grid, transpose_grid, diagonals))
+        win_pos = np.vstack((self.grid, transpose_grid, diagonals.reshape((2,3))))
 
         winner = None
 
@@ -83,33 +84,3 @@ class Board:
 
         # Return winner
         return winner
-
-    # Will be removed or alter with model
-    def fake_action(self, fake_grid, action):
-        i, j = action
-
-        if fake_grid[i, j] == self.EMPTY:
-            fake_grid[i, j] = self.player_turn()
-
-        return fake_grid
-
-    def minimax_value(self, fake_board=None):
-        if self.player_turn() == self.X:
-            func = max
-            v = - np.inf
-        else:
-            func = min
-            v = - np.inf
-
-
-        for action in self.get_actions():
-            fake_board = self.grid
-            fake_board = self.fake_action(fake_board, action)
-            v = func(v, self.minimax_value())
-
-        return v
-
-    def minimax(self):
-        for action in self.get_actions():
-            if self.minimax_value() == self.minimax_value():
-                return action
