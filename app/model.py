@@ -25,22 +25,11 @@ class QModel:
     def learning_algorithm(self, board : Board):
         # Repeat for each epoch
         for epoch in range(self.epochs):
+            # Initialize current state and winner
             current_state = board.grid
-            while current_state != self.goal_state:
-                if np.random.rand() < self.exploration_prob:
-                    action = np.random.randint(0, self.n_actions)
-                else:
-                    action = np.argmax(self.q_table[current_state])
+            winner = None
 
-                next_state = (current_state + 1) % self.n_state
-
-                reward = 1 if next_state == self.goal_state else 0
-
-                self.q_table[current_state, action] += self.l_rate * \
-                                                  (reward + self.discount_factor *
-                                                   np.max(self.q_table[next_state]) - self.q_table[current_state, action])
-
-                current_state = next_state
+            ### Main Logic ##
 
     def show_q_table(self):
         q_values_grid = np.max(self.q_table, axis=1).reshape((3, 3))

@@ -32,20 +32,6 @@ class Board:
         # Returns whose turn
         return self.X if count == 0 else self.O
 
-    def get_actions(self):
-        """
-        Returns set of all possible actions
-        """
-        actions = set()
-
-        # Loops for every cell to check if empty
-        for i, row in enumerate(self.grid):
-            for j, cell in enumerate(row):
-                if cell == self.EMPTY:
-                    actions.add((i, j))
-
-        return  actions
-
     def perform_action(self, action):
         """
         Returns the grid after performing an action
