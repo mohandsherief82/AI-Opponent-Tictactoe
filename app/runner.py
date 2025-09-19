@@ -20,9 +20,9 @@ white = (255, 255, 255)
 screen = pygame.display.set_mode(size)
 
 # Load fonts for displaying text in different sizes.
-mediumFont = pygame.font.Font("OpenSans-Regular.ttf", 28)
-largeFont = pygame.font.Font("OpenSans-Regular.ttf", 40)
-moveFont = pygame.font.Font("OpenSans-Regular.ttf", 60)
+mediumFont = pygame.font.Font("../OpenSans-Regular.ttf", 28)
+largeFont = pygame.font.Font("../OpenSans-Regular.ttf", 40)
+moveFont = pygame.font.Font("../OpenSans-Regular.ttf", 60)
 
 # Initialize game state variables.
 user = None  # Stores the player's chosen symbol ('X' or 'O').
