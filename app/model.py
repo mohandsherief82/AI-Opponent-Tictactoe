@@ -22,14 +22,34 @@ class QModel:
         # Initialize Q-table
         self.q_table = np.zeros((self.n_state, self.n_actions))
 
-    def learning_algorithm(self, board : Board):
+    def learning_algorithm(self):
         # Repeat for each epoch
         for epoch in range(self.epochs):
-            # Initialize current state and winner
-            current_state = board.grid
+            # Initialize board, current state and winner
+            board = Board()
+            initial_state = board.grid
             winner = None
 
-            ### Main Logic ##
+            # Keeping track of position and values
+            max_pos_value = {}
+            while board.get_winner() is None:
+                # Extract the possible moves
+                for action in self.__get_actions(board):
+                    max_pos_value[action] = self.q_table[action].max()
+
+
+    @staticmethod
+    def __get_actions(board):
+        """Gets all possible actions given a board"""
+        # A set of all possible actions
+        possible_actions = set()
+
+        for i, row in enumerate(board.grid):
+            for j, cell in enumerate(row):
+                if cell == board.EMPTY:
+                    possible_actions.add((i, j))
+
+        return possible_actions
 
     def show_q_table(self):
         q_values_grid = np.max(self.q_table, axis=1).reshape((3, 3))
