@@ -9,7 +9,7 @@ class QModel:
     A model that can play Tic-Tac-Toe trained by a q learning algorithm.
     """
 
-    n_state = 5478  # Number of all possible states for Tic-Tac-Toe
+    n_state = 5478  # Number of all possible states for Tic-Tac-Toe ### Problem including number of states possible
     n_actions = 9  # Number of all possible actions for Tic-Tac-Toe
 
     def __init__(self, l_rate=0.8, discount_factor=0.95, exploration_prob=0.2, epoch=1000):
@@ -36,7 +36,7 @@ class QModel:
                 # Get the current state as a unique integer identifier
                 current_state_id = self.get_state_id(board)
 
-                # --- Epsilon-Greedy Action Selection Strategy ---
+                # Epsilon-Greedy Action Selection Strategy
                 if np.random.rand() < self.exploration_prob:
                     # Exploration: Choose a random valid action
                     possible_actions = self.get_actions(board)
@@ -58,9 +58,8 @@ class QModel:
                 # Perform the chosen action on the board. This also provides the new state and reward.
                 board.perform_action(chosen_action)
 
-                # --- Q-Table Update Rule ---
                 # Get the new state and reward after performing the action
-                new_state_id = self.get_state_id(board)
+                new_state_id = self.get_state_id(board) ## Having a problem here
                 reward = self.get_reward(board)
 
 
@@ -161,12 +160,26 @@ class QModel:
 
         plt.show()
 
+    def play_game(self, board):
+        # Get the current state id
+        state_id = self.get_state_id(board)
+
+        # Get the best position based on id
+        flat_id = np.argmax(self.q_table[:, state_id])
+        action = (flat_id // 3, flat_id % 3)
+
+        if action in self.get_actions():
+            board.perform_action(action)
+
 
 def main():
     # Initialize Environment and Model
     board = Board()
     model = QModel()
 
+    model.learning_algorithm()
+
+    model.show_q_table()
 
 if __name__ == "__main__":
     main()
