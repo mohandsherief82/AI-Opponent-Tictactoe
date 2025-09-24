@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 from board import Board
 
@@ -8,6 +8,10 @@ class QModel:
     """
     A model that can play Tic-Tac-Toe trained by a q learning algorithm.
     """
+    # Customizing tqdm using ANSI escape codes
+    COLOR_START = "\033[94m"
+    COLOR_END = "\033[0m"
+    BAR_FONT = COLOR_START + "{l_bar}" + COLOR_END + "{bar}" + COLOR_START + "{r_bar}" + COLOR_END
 
     n_state = 19683  # Number of all possible states for Tic-Tac-Toe ### Problem including number of states possible
     n_actions = 9  # Number of all possible actions for Tic-Tac-Toe
@@ -32,7 +36,10 @@ class QModel:
         board = Board()
         winner = None
 
-        for epoch in range(self.epochs):
+        for epoch in tqdm(range(self.epochs),
+                    colour='white',
+                    desc=f"{self.COLOR_START}Training Model:{self.COLOR_END}",
+                    bar_format=self.BAR_FONT):
 
             # The game loop continues as long as there is no winner
             while winner is None:
@@ -75,16 +82,12 @@ class QModel:
 
     def update_table(self, board, current_state_id, chosen_action_index):
         """The core Q-learning update function"""
-        # Get the new state and reward after performing the action
-        new_state_id = self.get_state_id(board)
-        reward = self.get_reward(board)
-
         # Q(s, a) = Q(s, a) + alpha * (r + gamma * max_Q(s', a') - Q(s, a))
         self.q_table[current_state_id, chosen_action_index] = (
                 self.q_table[current_state_id, chosen_action_index] +
                 self.l_rate * (
-                        reward +
-                        self.discount_factor * np.max(self.q_table[new_state_id]) -
+                        self.get_reward(board) +
+                        self.discount_factor * np.max(self.q_table[self.get_state_id(board)]) -
                         self.q_table[current_state_id, chosen_action_index]
                 )
         )
@@ -168,9 +171,9 @@ def main():
     # Initialize Environment and Model
     model = QModel()
 
+    # Training the model
     model.learning_algorithm()
 
-    print((model.q_table[0]))
 
 if __name__ == "__main__":
     main()
