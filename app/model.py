@@ -9,7 +9,7 @@ class QModel:
     A model that can play Tic-Tac-Toe trained by a q learning algorithm.
     """
 
-    n_state = 5478  # Number of all possible states for Tic-Tac-Toe ### Problem including number of states possible
+    n_state = 19683  # Number of all possible states for Tic-Tac-Toe ### Problem including number of states possible
     n_actions = 9  # Number of all possible actions for Tic-Tac-Toe
 
     def __init__(self, l_rate=0.8, discount_factor=0.95, exploration_prob=0.2, epoch=1000):
@@ -26,13 +26,16 @@ class QModel:
         """
         The main Q-learning algorithm. It iterates through a number of epochs (games),
         and for each game, it follows the game loop to update the Q-table.
+        The algorithm is set for a tic-tac-toe game.
         """
-        # Initialize the game board
+        # Initialize the game board and winner
         board = Board()
+        winner = None
+
         for epoch in range(self.epochs):
 
             # The game loop continues as long as there is no winner
-            while board.get_winner() is None:
+            while winner is None:
                 # Get the current state as a unique integer identifier
                 current_state_id = self.get_state_id(board)
 
@@ -50,7 +53,11 @@ class QModel:
                         action_values[action] = self.q_table[current_state_id, action_index]
 
                     # Use the imported max_key function to get the action tuple with the highest value
-                    chosen_action = max(action_values, key=action_values.get)
+                    try:
+                        chosen_action = max(action_values, key=action_values.get)
+                    except ValueError:
+                        winner = 'Draw'
+                        continue
 
                 # Map the chosen (row, col) action tuple to its integer index for the Q-table
                 chosen_action_index = chosen_action[0] * 3 + chosen_action[1]
@@ -58,24 +65,29 @@ class QModel:
                 # Perform the chosen action on the board. This also provides the new state and reward.
                 board.perform_action(chosen_action)
 
-                # Get the new state and reward after performing the action
-                new_state_id = self.get_state_id(board) ## Having a problem here
-                reward = self.get_reward(board)
+                # Update the Q-table
+                self.update_table(board, current_state_id, chosen_action_index)
 
-
-                # The core Q-learning update formula:
-                # Q(s, a) = Q(s, a) + alpha * (r + gamma * max_Q(s', a') - Q(s, a))
-                self.q_table[current_state_id, chosen_action_index] = (
-                        self.q_table[current_state_id, chosen_action_index] +
-                        self.l_rate * (
-                                reward +
-                                self.discount_factor * np.max(self.q_table[new_state_id]) -
-                                self.q_table[current_state_id, chosen_action_index]
-                        )
-                )
+                winner = board.get_winner()
 
             # Initialize a new game board
             board.set_initial_state()
+
+    def update_table(self, board, current_state_id, chosen_action_index):
+        """The core Q-learning update function"""
+        # Get the new state and reward after performing the action
+        new_state_id = self.get_state_id(board)
+        reward = self.get_reward(board)
+
+        # Q(s, a) = Q(s, a) + alpha * (r + gamma * max_Q(s', a') - Q(s, a))
+        self.q_table[current_state_id, chosen_action_index] = (
+                self.q_table[current_state_id, chosen_action_index] +
+                self.l_rate * (
+                        reward +
+                        self.discount_factor * np.max(self.q_table[new_state_id]) -
+                        self.q_table[current_state_id, chosen_action_index]
+                )
+        )
 
     @staticmethod
     def get_reward(board):
@@ -140,26 +152,6 @@ class QModel:
 
         return sorted(possible_actions)
 
-    def show_q_table(self):
-        q_values_grid = np.max(self.q_table, axis=1).reshape((3, 3))
-
-        # Plot the grid of Q-values
-        plt.figure(figsize=(6, 6))
-        plt.imshow(q_values_grid, cmap='coolwarm', interpolation='nearest')
-        plt.colorbar(label='Q-value')
-        plt.title('Learned Q-values for each state')
-        plt.xticks(np.arange(4), ['0', '1', '2', '3'])
-        plt.yticks(np.arange(4), ['0', '1', '2', '3'])
-        plt.gca().invert_yaxis()  # To match grid layout
-        plt.grid(True)
-
-        # Annotating the Q-values on the grid
-        for i in range(4):
-            for j in range(4):
-                plt.text(j, i, f'{q_values_grid[i, j]:.2f}', ha='center', va='center', color='black')
-
-        plt.show()
-
     def play_game(self, board):
         # Get the current state id
         state_id = self.get_state_id(board)
@@ -168,18 +160,17 @@ class QModel:
         flat_id = np.argmax(self.q_table[:, state_id])
         action = (flat_id // 3, flat_id % 3)
 
-        if action in self.get_actions():
+        if action in self.get_actions(board):
             board.perform_action(action)
 
 
 def main():
     # Initialize Environment and Model
-    board = Board()
     model = QModel()
 
     model.learning_algorithm()
 
-    model.show_q_table()
+    print((model.q_table[0]))
 
 if __name__ == "__main__":
     main()
