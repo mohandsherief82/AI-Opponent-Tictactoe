@@ -8,11 +8,6 @@ class QModel:
     """
     A model that can play Tic-Tac-Toe trained by a q learning algorithm.
     """
-    # Customizing tqdm using ANSI escape codes
-    COLOR_START = "\033[94m"
-    COLOR_END = "\033[0m"
-    BAR_FONT = COLOR_START + "{l_bar}" + COLOR_END + "{bar}" + COLOR_START + "{r_bar}" + COLOR_END
-
     n_state = 19683  # Number of all possible states for Tic-Tac-Toe ### Problem including number of states possible
     n_actions = 9  # Number of all possible actions for Tic-Tac-Toe
 
@@ -36,10 +31,7 @@ class QModel:
         board = Board()
         winner = None
 
-        for epoch in tqdm(range(self.epochs),
-                    colour='white',
-                    desc=f"{self.COLOR_START}Training Model:{self.COLOR_END}",
-                    bar_format=self.BAR_FONT):
+        for _ in tqdm(range(self.epochs)):
 
             # The game loop continues as long as there is no winner
             while winner is None:
@@ -160,9 +152,11 @@ class QModel:
         state_id = self.get_state_id(board)
 
         # Get the best position based on id
-        flat_id = np.argmax(self.q_table[:, state_id])
+        print(self.q_table[state_id])
+        flat_id = np.argmax(self.q_table[state_id, :])
         action = (flat_id // 3, flat_id % 3)
 
+        # Check if the choosen action is valid
         if action in self.get_actions(board):
             board.perform_action(action)
 

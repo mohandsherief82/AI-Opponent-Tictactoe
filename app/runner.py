@@ -3,6 +3,7 @@ import sys
 import time
 
 from board import Board
+from model import QModel
 
 # Initialize all imported Pygame modules.
 pygame.init()
@@ -27,9 +28,13 @@ moveFont = pygame.font.Font("../OpenSans-Regular.ttf", 60)
 # Initialize game state variables.
 user = None  # Stores the player's chosen symbol ('X' or 'O').
 board = Board()  # Represents the game board.
+model = QModel(epoch=int(10000000000000)) # Represents the AI model
 computer_turn = False  # Flag to manage computer's turn.
 winner_player = None  # Stores a descriptive message for the winner.
 score = {"Player": 0, "Computer": 0}  # Tracks the scores for each player.
+
+# Model training
+model.learning_algorithm()
 
 # Main game loop.
 while True:
@@ -154,9 +159,8 @@ while True:
 
         # Check for AI move only when it's the computer's turn.
         if user != player and not game_over:
-            # Logic for computer's move would go here.
-            # Example: time.sleep(0.5); move = board.minimax(); board.perform_action(move);
-            pass
+            # Get the model's action
+            model.play_game(board)
 
         # Check for a user move.
         click, _, _ = pygame.mouse.get_pressed()
