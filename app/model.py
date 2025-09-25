@@ -8,7 +8,7 @@ class QModel:
     """
     A model that can play Tic-Tac-Toe trained by a q learning algorithm.
     """
-    n_state = 19683  # Number of all possible states for Tic-Tac-Toe ### Problem including number of states possible
+    n_state = 5478  # Number of all possible states for Tic-Tac-Toe
     n_actions = 9  # Number of all possible actions for Tic-Tac-Toe
 
     def __init__(self, l_rate=0.8, discount_factor=0.95, exploration_prob=0.2, epoch=1000):
@@ -55,8 +55,7 @@ class QModel:
                     try:
                         chosen_action = max(action_values, key=action_values.get)
                     except ValueError:
-                        winner = 'Draw'
-                        continue
+                        break
 
                 # Map the chosen (row, col) action tuple to its integer index for the Q-table
                 chosen_action_index = chosen_action[0] * 3 + chosen_action[1]
@@ -71,6 +70,9 @@ class QModel:
 
             # Initialize a new game board
             board.set_initial_state()
+
+        # Q-table normalization
+        self.q_table = (self.q_table - np.min(self.q_table)) / (np.max(self.q_table) - np.min(self.q_table))
 
     def update_table(self, board, current_state_id, chosen_action_index):
         """The core Q-learning update function"""
@@ -95,21 +97,20 @@ class QModel:
         if winner is not None:
             # A large positive reward for winning
             if winner == board.X:
-                return 1.0
+                return 10.0
 
             # A large negative reward for losing, punishing the agent
             elif winner == board.O:
-                return -1.0
+                return -10.0
 
             # A small positive reward for a draw
             elif winner == winner:
-                return 0.5
+                return 3
 
         # A small negative reward for every move if the game is still ongoing.
-        return -0.01
+        return -0.1
 
-    @staticmethod
-    def get_state_id(board):
+    def get_state_id(self, board):
         """Maps the game board to a specific state id."""
         state = 0
         multiplier = 1
@@ -132,7 +133,7 @@ class QModel:
                 multiplier *= 3
 
         # Return state
-        return state
+        return round(self.n_state * state / (3 ** 9))
 
     @staticmethod
     def get_actions(board):
