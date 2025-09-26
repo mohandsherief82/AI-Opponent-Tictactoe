@@ -29,33 +29,26 @@ class QModel:
         """
         # Initialize the game board and winner
         board = Board()
-        winner = None
 
         for _ in tqdm(range(self.epochs)):
 
             # The game loop continues as long as there is no winner
-            while winner is None:
+            while not board.state:
                 # Get the current state as a unique integer identifier
                 current_state_id = self.get_state_id(board)
 
-                # Epsilon-Greedy Action Selection Strategy
-                if np.random.rand() < self.exploration_prob:
-                    # Exploration: Choose a random valid action
-                    possible_actions = self.get_actions(board)
-                    chosen_action = possible_actions[np.random.randint(len(possible_actions))]
-                else:
-                    # Exploitation: Choose the best action based on the Q-table
-                    action_values = {}
-                    for action in self.get_actions(board):
-                        # Map the (row, col) action tuple to its corresponding Q-table index (0-8)
-                        action_index = action[0] * 3 + action[1]
-                        action_values[action] = self.q_table[current_state_id, action_index]
+                # Exploitation: Choose the best action based on the Q-table
+                action_values = {}
+                for action in self.get_actions(board):
+                    # Map the (row, col) action tuple to its corresponding Q-table index (0-8)
+                    action_index = action[0] * 3 + action[1]
+                    action_values[action] = self.q_table[current_state_id, action_index]
 
-                    # Use the imported max_key function to get the action tuple with the highest value
-                    try:
-                        chosen_action = max(action_values, key=action_values.get)
-                    except ValueError:
-                        break
+                # Use the imported max_key function to get the action tuple with the highest value
+                try:
+                    chosen_action = max(action_values, key=action_values.get)
+                except ValueError:
+                    break
 
                 # Map the chosen (row, col) action tuple to its integer index for the Q-table
                 chosen_action_index = chosen_action[0] * 3 + chosen_action[1]
@@ -66,7 +59,7 @@ class QModel:
                 # Update the Q-table
                 self.update_table(board, current_state_id, chosen_action_index)
 
-                winner = board.get_winner()
+                board.get_winner()
 
             # Initialize a new game board
             board.set_initial_state()
@@ -85,6 +78,31 @@ class QModel:
                         self.q_table[current_state_id, chosen_action_index]
                 )
         )
+
+    def get_state_id(self, board):
+        """Maps the game board to a specific state id."""
+        state = 0
+        multiplier = 1
+
+        # Iterate through all cells
+        for row in range(3):
+            for col in range(3):
+                value = 0
+
+                # Map the board cell's state to a value
+                if board.grid[row][col] == board.X:
+                    value = 1
+                elif board.grid[row][col] == board.O:
+                    value = 2
+
+                # Add cell value to total state ID converting from base-3 to base-10 integer
+                state += value * (row + 1)
+
+            # Update multiplier for next cell
+            # multiplier *= 3
+
+        # Return state
+        return state
 
     @staticmethod
     def get_reward(board):
@@ -110,31 +128,6 @@ class QModel:
         # A small negative reward for every move if the game is still ongoing.
         return -0.1
 
-    def get_state_id(self, board):
-        """Maps the game board to a specific state id."""
-        state = 0
-        multiplier = 1
-
-        # Iterate through all cells
-        for row in range(3):
-            for col in range(3):
-                value = 0
-
-                # Map the board cell's state to a value
-                if board.grid[row][col] == board.X:
-                    value = 1
-                elif board.grid[row][col] == board.O:
-                    value = 2
-
-                # Add cell value to total state ID converting from base-3 to base-10 integer
-                state += value * multiplier
-
-                # Update multiplier for next cell
-                multiplier *= 3
-
-        # Return state
-        return round(self.n_state * state / (3 ** 9))
-
     @staticmethod
     def get_actions(board):
         """Gets all possible actions given a board"""
@@ -153,21 +146,61 @@ class QModel:
         state_id = self.get_state_id(board)
 
         # Get the best position based on id
-        print(self.q_table[state_id])
         flat_id = np.argmax(self.q_table[state_id, :])
-        action = (flat_id // 3, flat_id % 3)
+        action = (int(flat_id) // 3, int(flat_id) % 3)
+        print(action)
 
-        # Check if the choosen action is valid
+        # Check if the chosen action is valid
+        print(self.get_actions(board))
         if action in self.get_actions(board):
             board.perform_action(action)
+        else:
+            board.set_initial_state()
+
+
+def save_array_to_csv(data_array, filename="output_data.csv", delimiter=','):
+    """
+    Saves a NumPy ndarray to a CSV file using only built-in NumPy functionality.
+
+    Args:
+        data_array (np.ndarray): The array to be saved.
+        filename (str): The name of the file to write to.
+        delimiter (str): The character used to separate values (e.g., ',', '\t').
+    """
+
+    # 1. Determine the format string (fmt) based on the array's data type
+    # This controls how the numbers are written (e.g., as integers or floats).
+    if np.issubdtype(data_array.dtype, np.integer):
+        fmt = '%d'
+    else:
+        # Using '%.6f' ensures high precision for floating-point numbers
+        fmt = '%.6f'
+
+    print(f"Saving array of shape {data_array.shape} to {filename}...")
+
+    try:
+        # 2. Use np.savetxt()
+        # The delimiter argument specifies the character to use between columns.
+        np.savetxt(
+            filename,
+            data_array,
+            fmt=fmt,
+            delimiter=delimiter
+        )
+        print("Save complete.")
+
+    except Exception as e:
+        print(f"An error occurred during saving: {e}")
 
 
 def main():
-    # Initialize Environment and Model
+    # Initialize Model
     model = QModel()
 
     # Training the model
     model.learning_algorithm()
+
+    save_array_to_csv(model.q_table)
 
 
 if __name__ == "__main__":
