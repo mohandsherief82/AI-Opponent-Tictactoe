@@ -30,7 +30,7 @@ class QModel:
         # Initialize the game board and winner
         board = Board()
 
-        for _ in tqdm(range(self.epochs)):
+        for _ in tqdm(range(self.epochs), desc="Training Model"):
 
             # The game loop continues as long as there is no winner
             while not board.state:
@@ -64,8 +64,8 @@ class QModel:
             # Initialize a new game board
             board.set_initial_state()
 
-        # Q-table normalization
-        self.q_table = (self.q_table - np.min(self.q_table)) / (np.max(self.q_table) - np.min(self.q_table))
+            # Q-table normalization
+            self.q_table = (self.q_table - np.min(self.q_table)) / (np.max(self.q_table) - np.min(self.q_table))
 
     def update_table(self, board, current_state_id, chosen_action_index):
         """The core Q-learning update function"""
@@ -79,7 +79,8 @@ class QModel:
                 )
         )
 
-    def get_state_id(self, board):
+    @staticmethod
+    def get_state_id(board):
         """Maps the game board to a specific state id."""
         state = 0
         multiplier = 1
@@ -97,9 +98,6 @@ class QModel:
 
                 # Add cell value to total state ID converting from base-3 to base-10 integer
                 state += value * (row + 1)
-
-            # Update multiplier for next cell
-            # multiplier *= 3
 
         # Return state
         return state
@@ -142,20 +140,29 @@ class QModel:
         return sorted(possible_actions)
 
     def play_game(self, board):
-        # Get the current state id
+
+        # Get current board state
         state_id = self.get_state_id(board)
 
-        # Get the best position based on id
-        flat_id = np.argmax(self.q_table[state_id, :])
-        action = (int(flat_id) // 3, int(flat_id) % 3)
-        print(action)
+        # copy Q-table
+        copy_q_table = np.copy(self.q_table[state_id, :])
 
-        # Check if the chosen action is valid
-        print(self.get_actions(board))
-        if action in self.get_actions(board):
-            board.perform_action(action)
-        else:
-            board.set_initial_state()
+        # Get possible positions
+        actions = self.get_actions(board)
+
+        # Get best action
+        best_action = None
+        move = None
+        for i, j in actions:
+            if best_action is None:
+                best_action = copy_q_table[i + j]
+                move = (i, j)
+            elif best_action < copy_q_table[i + j]:
+                best_action = copy_q_table[i + j]
+                move = (i, j)
+
+        # Perform action
+        board.perform_action(move)
 
 
 def save_array_to_csv(data_array, filename="output_data.csv", delimiter=','):
