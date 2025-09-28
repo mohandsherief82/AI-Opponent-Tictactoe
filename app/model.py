@@ -165,49 +165,12 @@ class QModel:
         board.perform_action(move)
 
 
-def save_array_to_csv(data_array, filename="output_data.csv", delimiter=','):
-    """
-    Saves a NumPy ndarray to a CSV file using only built-in NumPy functionality.
-
-    Args:
-        data_array (np.ndarray): The array to be saved.
-        filename (str): The name of the file to write to.
-        delimiter (str): The character used to separate values (e.g., ',', '\t').
-    """
-
-    # 1. Determine the format string (fmt) based on the array's data type
-    # This controls how the numbers are written (e.g., as integers or floats).
-    if np.issubdtype(data_array.dtype, np.integer):
-        fmt = '%d'
-    else:
-        # Using '%.6f' ensures high precision for floating-point numbers
-        fmt = '%.6f'
-
-    print(f"Saving array of shape {data_array.shape} to {filename}...")
-
-    try:
-        # 2. Use np.savetxt()
-        # The delimiter argument specifies the character to use between columns.
-        np.savetxt(
-            filename,
-            data_array,
-            fmt=fmt,
-            delimiter=delimiter
-        )
-        print("Save complete.")
-
-    except Exception as e:
-        print(f"An error occurred during saving: {e}")
-
-
 def main():
     # Initialize Model
     model = QModel()
 
     # Training the model
     model.learning_algorithm()
-
-    save_array_to_csv(model.q_table)
 
 
 if __name__ == "__main__":
