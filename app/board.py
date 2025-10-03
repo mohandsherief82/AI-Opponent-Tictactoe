@@ -70,3 +70,14 @@ class Board:
 
         # Return winner
         return winner
+
+    def is_full(self):
+        count = 0
+        for row in self.grid:
+            for cell in row:
+                if cell != self.EMPTY:
+                    count += 1
+
+        if count != 9:
+            return True
+        return False

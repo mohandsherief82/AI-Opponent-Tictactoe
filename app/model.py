@@ -1,3 +1,5 @@
+import random
+
 import numpy as np
 from tqdm import tqdm
 
@@ -29,26 +31,32 @@ class QModel:
         """
         # Initialize the game board and winner
         board = Board()
-
         for _ in tqdm(range(self.epochs), desc="Training Model"):
+            previous_action = None
 
-            # The game loop continues as long as there is no winner
+            # Train once for X
             while not board.state:
                 # Get the current state as a unique integer identifier
                 current_state_id = self.get_state_id(board)
 
-                # Exploitation: Choose the best action based on the Q-table
-                action_values = {}
-                for action in self.get_actions(board):
-                    # Map the (row, col) action tuple to its corresponding Q-table index (0-8)
-                    action_index = action[0] * 3 + action[1]
-                    action_values[action] = self.q_table[current_state_id, action_index]
+                if previous_action is None:
+                    i = random.choice([0, 1, 2])
+                    j = random.choice([0, 1, 2])
+                    chosen_action = (i, j)
+                else:
+                    # Exploitation: Choose the best action based on the Q-table
+                    action_values = {}
+                    for action in self.get_actions(board):
+                        # Map the (row, col) action tuple to its corresponding Q-table index (0-8)
+                        action_index = action[0] * 3 + action[1]
+                        action_values[action] = self.q_table[current_state_id, action_index]
 
-                # Use the imported max_key function to get the action tuple with the highest value
-                try:
-                    chosen_action = max(action_values, key=action_values.get)
-                except ValueError:
-                    break
+                    # Use the imported max_key function to get the action tuple with the highest value
+                    try:
+                        chosen_action = max(action_values, key=action_values.get)
+                    except ValueError:
+                        self.update_table(board, current_state_id, previous_action, reward=-5, player='X')
+                        break
 
                 # Map the chosen (row, col) action tuple to its integer index for the Q-table
                 chosen_action_index = chosen_action[0] * 3 + chosen_action[1]
@@ -57,23 +65,72 @@ class QModel:
                 board.perform_action(chosen_action)
 
                 # Update the Q-table
-                self.update_table(board, current_state_id, chosen_action_index)
+                self.update_table(board, current_state_id, chosen_action_index, player='X')
 
                 board.get_winner()
+                previous_action = chosen_action
 
             # Initialize a new game board
             board.set_initial_state()
 
-            # Q-table normalization
-            self.q_table = (self.q_table - np.min(self.q_table)) / (np.max(self.q_table) - np.min(self.q_table))
+            # Train once for O
+            previous_action = None
 
-    def update_table(self, board, current_state_id, chosen_action_index):
+            # The game loop continues as long as there is no winner
+            while not board.state:
+                # Get the current state as a unique integer identifier
+                current_state_id = self.get_state_id(board)
+
+                if previous_action is None:
+                    i = random.choice([0, 1, 2])
+                    j = random.choice([0, 1, 2])
+                    chosen_action = (i, j)
+                else:
+                    # Exploitation: Choose the best action based on the Q-table
+                    action_values = {}
+                    for action in self.get_actions(board):
+                        # Map the (row, col) action tuple to its corresponding Q-table index (0-8)
+                        action_index = action[0] * 3 + action[1]
+                        action_values[action] = self.q_table[current_state_id, action_index]
+
+                    # Use the imported max_key function to get the action tuple with the highest value
+                    try:
+                        chosen_action = max(action_values, key=action_values.get)
+                    except ValueError:
+                        self.update_table(board, current_state_id, previous_action, reward=-5, player='O')
+                        break
+
+                # Map the chosen (row, col) action tuple to its integer index for the Q-table
+                chosen_action_index = chosen_action[0] * 3 + chosen_action[1]
+
+                # Perform the chosen action on the board. This also provides the new state and reward.
+                board.perform_action(chosen_action)
+
+                # Update the Q-table
+                self.update_table(board, current_state_id, chosen_action_index, player='O')
+
+                board.get_winner()
+                previous_action = chosen_action
+
+            # Initialize a new game board
+            board.set_initial_state()
+
+        # Q-table normalization
+        self.q_table = (self.q_table - np.min(self.q_table)) / (np.max(self.q_table) - np.min(self.q_table))
+
+
+    def update_table(self, board, current_state_id, chosen_action_index, reward=None, player='X'):
         """The core Q-learning update function"""
+        if reward is None:
+            if player == 'X':
+                reward = self.get_reward_X(board)
+            elif player == 'O':
+                reward = self.get_reward_O(board)
         # Q(s, a) = Q(s, a) + alpha * (r + gamma * max_Q(s', a') - Q(s, a))
         self.q_table[current_state_id, chosen_action_index] = (
                 self.q_table[current_state_id, chosen_action_index] +
                 self.l_rate * (
-                        self.get_reward(board) +
+                        reward +
                         self.discount_factor * np.max(self.q_table[self.get_state_id(board)]) -
                         self.q_table[current_state_id, chosen_action_index]
                 )
@@ -99,11 +156,13 @@ class QModel:
                 # Add cell value to total state ID converting from base-3 to base-10 integer
                 state += value * (row + 1)
 
+            multiplier *= 3
+
         # Return state
         return state
 
     @staticmethod
-    def get_reward(board):
+    def get_reward_X(board):
         """
         Returns a reward based on the current state of the game.
         """
@@ -122,6 +181,30 @@ class QModel:
             # A small positive reward for a draw
             elif winner == winner:
                 return 3
+
+        # A small negative reward for every move if the game is still ongoing.
+        return -1
+
+    @staticmethod
+    def get_reward_O(board):
+        """
+        Returns a reward based on the current state of the game.
+        """
+        winner = board.get_winner()
+
+        # Check if the game has ended in a win or loss
+        if winner is not None:
+            # A large positive reward for winning
+            if winner == board.X:
+                return -1.0
+
+            # A large negative reward for losing, punishing the agent
+            elif winner == board.O:
+                return 1.0
+
+            # A small penalty for a draw
+            elif winner == winner:
+                return -0.01
 
         # A small negative reward for every move if the game is still ongoing.
         return -0.1
