@@ -3,6 +3,7 @@ import sys
 import time
 
 from board import Board
+from model import QModel
 
 # Initialize all imported Pygame modules.
 pygame.init()
@@ -27,9 +28,13 @@ moveFont = pygame.font.Font("../OpenSans-Regular.ttf", 60)
 # Initialize game state variables.
 user = None  # Stores the player's chosen symbol ('X' or 'O').
 board = Board()  # Represents the game board.
+model = QModel(epoch=int(10000)) # Represents the AI model
 computer_turn = False  # Flag to manage computer's turn.
 winner_player = None  # Stores a descriptive message for the winner.
 score = {"Player": 0, "Computer": 0}  # Tracks the scores for each player.
+
+# Model training
+model.learning_algorithm()
 
 # Main game loop.
 while True:
@@ -67,6 +72,13 @@ while True:
         pygame.draw.rect(screen, white, playOButton)
         screen.blit(playO, playORect)
 
+        exitButton = pygame.Rect(3 * (width / 8), (2 * height / 3), width / 4, 50)
+        exitb = mediumFont.render("Exit", True, black)
+        exitRect = exitb.get_rect()
+        exitRect.center = exitButton.center
+        pygame.draw.rect(screen, white, exitButton)
+        screen.blit(exitb, exitRect)
+
         # Check if a button is clicked to set the user's player.
         click, _, _ = pygame.mouse.get_pressed()
         if click == 1:
@@ -77,15 +89,14 @@ while True:
             elif playOButton.collidepoint(mouse):
                 time.sleep(0.2)
                 user = board.O
+            elif exitButton.collidepoint(mouse):
+                time.sleep(0.2)
+                pygame.quit()
+                break
+
 
     # If a user has been chosen, start the game against the computer.
     else:
-        # Display the current scores.
-        player_score_text = mediumFont.render(f"Player Score: {score['Player']}", True, white)
-        computer_score_text = mediumFont.render(f"Computer Score: {score['Computer']}", True, white)
-        screen.blit(player_score_text, (10, 75))
-        screen.blit(computer_score_text, (width - computer_score_text.get_width() - 10, 75))
-
         # Draw the tic-tac-toe game board.
         tile_size = 100
         tile_origin = (width / 2 - (1.5 * tile_size),
@@ -154,9 +165,8 @@ while True:
 
         # Check for AI move only when it's the computer's turn.
         if user != player and not game_over:
-            # Logic for computer's move would go here.
-            # Example: time.sleep(0.5); move = board.minimax(); board.perform_action(move);
-            pass
+            # Get the model's action
+            model.play_game(board)
 
         # Check for a user move.
         click, _, _ = pygame.mouse.get_pressed()
@@ -169,18 +179,25 @@ while True:
                     if board.grid[i, j] == board.EMPTY and tiles[i][j].collidepoint(mouse):
                         board.perform_action((i, j))
 
-            winner = board.get_winner()
-            game_over = board.state
+        winner = board.get_winner()
+        game_over = board.state
 
         # Check if the game is over and display the "Play Again" button.
         if game_over:
-            againButton = pygame.Rect(width / 3, height - 65, width / 3, 50)
+            againButton = pygame.Rect((width / 8), (height - 100), (width / 4), 50)
             again = mediumFont.render("Play Again", True, black)
             againRect = again.get_rect()
             againRect.center = againButton.center
             pygame.draw.rect(screen, white, againButton)
             screen.blit(again, againRect)
             click, _, _ = pygame.mouse.get_pressed()
+
+            exitButton = pygame.Rect(5 * (width / 8), (height - 100), (width / 4), 50)
+            exitb = mediumFont.render("Exit", True, black)
+            exitRect = exitb.get_rect()
+            exitRect.center = exitButton.center
+            pygame.draw.rect(screen, white, exitButton)
+            screen.blit(exitb, exitRect)
             if click == 1:
                 mouse = pygame.mouse.get_pos()
                 if againButton.collidepoint(mouse):
@@ -189,6 +206,11 @@ while True:
                     board.set_initial_state()
                     computer_turn = False
                     winner_player = None
+                    user = None
+                elif exitButton.collidepoint(mouse):
+                    time.sleep(0.2)
+                    pygame.quit()
+                    break
 
     # Update the full display surface to show everything that was drawn.
     pygame.display.flip()
